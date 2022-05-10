@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+	<title>PDFからテキストを抽出する</title>
+	<meta http-equiv="Content-type" content="text/html;charset=UTF-8">
+
+	<style>
+		@media print {
+			* {
+				-webkit-print-color-adjust: exact;
+			}
+		}
+
+		body {
+			/*font-family: "Hiragino Mincho Pro";*/
+			font-family: var("Hiragino Mincho ProN", "Hiragino Mincho Pro", "Hiragino Kaku Gothic ProN", "Hiragino Kaku Gothic Pro", --vscode-markdown-font-family, -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif);
+			font-size: var(--vscode-markdown-font-size, 14px);
+			padding: 0 26px;
+			line-height: var(--vscode-markdown-line-height, 22px);
+			word-wrap: break-word;
+		}
+
+		#code-csp-warning {
+			position: fixed;
+			top: 0;
+			right: 0;
+			color: white;
+			margin: 16px;
+			text-align: center;
+			font-size: 12px;
+			font-family: sans-serif;
+			background-color: #444444;
+			cursor: pointer;
+			padding: 6px;
+			box-shadow: 1px 1px 1px rgba(0, 0, 0, .25);
+		}
+
+		#code-csp-warning:hover {
+			text-decoration: none;
+			background-color: #007acc;
+			box-shadow: 2px 2px 2px rgba(0, 0, 0, .25);
+		}
+
+		body.scrollBeyondLastLine {
+			margin-bottom: calc(100vh - 22px);
+		}
+
+		body.showEditorSelection .code-line {
+			position: relative;
+		}
+
+		body.showEditorSelection .code-active-line:before,
+		body.showEditorSelection .code-line:hover:before {
+			content: "";
+			display: block;
+			position: absolute;
+			top: 0;
+			left: -12px;
+			height: 100%;
+		}
+
+		body.showEditorSelection li.code-active-line:before,
+		body.showEditorSelection li.code-line:hover:before {
+			left: -30px;
+		}
+
+		.vscode-light.showEditorSelection .code-active-line:before {
+			border-left: 3px solid rgba(0, 0, 0, 0.15);
+		}
+
+		.vscode-light.showEditorSelection .code-line:hover:before {
+			border-left: 3px solid rgba(0, 0, 0, 0.40);
+		}
+
+		.vscode-light.showEditorSelection .code-line .code-line:hover:before {
+			border-left: none;
+		}
+
+		.vscode-dark.showEditorSelection .code-active-line:before {
+			border-left: 3px solid rgba(255, 255, 255, 0.4);
+		}
+
+		.vscode-dark.showEditorSelection .code-line:hover:before {
+			border-left: 3px solid rgba(255, 255, 255, 0.60);
+		}
+
+		.vscode-dark.showEditorSelection .code-line .code-line:hover:before {
+			border-left: none;
+		}
+
+		.vscode-high-contrast.showEditorSelection .code-active-line:before {
+			border-left: 3px solid rgba(255, 160, 0, 0.7);
+		}
+
+		.vscode-high-contrast.showEditorSelection .code-line:hover:before {
+			border-left: 3px solid rgba(255, 160, 0, 1);
+		}
+
+		.vscode-high-contrast.showEditorSelection .code-line .code-line:hover:before {
+			border-left: none;
+		}
+
+		img {
+			max-width: 100%;
+			max-height: 100%;
+		}
+
+		a {
+			text-decoration: none;
+		}
+
+		a:hover {
+			text-decoration: underline;
+		}
+
+		a:focus,
+		input:focus,
+		select:focus,
+		textarea:focus {
+			outline: 1px solid -webkit-focus-ring-color;
+			outline-offset: -1px;
+		}
+
+		hr {
+			border: 0;
+			height: 2px;
+			border-bottom: 2px solid;
+		}
+
+		div {
+			break-inside: avoid-page;
+		}
+
+		h1 {
+			padding-bottom: 0.3em;
+			line-height: 1.2;
+			border-bottom-width: 1px;
+			border-bottom-style: solid;
+			break-after: avoid-page;
+		}
+
+		h2,
+		h3,
+		h4 {
+			font-weight: bold;
+			/*normal*/
+			line-height: 2;
+			padding-top: 0.8em;
+			break-after: avoid-page;
+		}
+
+		table {
+			border-collapse: collapse;
+		}
+
+		table>thead>tr>th {
+			text-align: left;
+			border-bottom: 1px solid;
+		}
+
+		table>thead>tr>th,
+		table>thead>tr>td,
+		table>tbody>tr>th,
+		table>tbody>tr>td {
+			padding: 5px 10px;
+		}
+
+		table>tbody>tr+tr>td {
+			border-top: 1px solid;
+		}
+
+		blockquote {
+			margin: 0 7px 0 5px;
+			padding: 0 16px 0 10px;
+			border-left-width: 5px;
+			border-left-style: solid;
+		}
+
+		code {
+			font-family: Menlo, Monaco, Consolas, "Droid Sans Mono", "Courier New", monospace, "Droid Sans Fallback";
+			font-size: 1em;
+			line-height: 1.357em;
+			break-inside: avoid-page;
+
+		}
+
+		body.wordWrap pre {
+			white-space: pre-wrap;
+		}
+
+		pre:not(.hljs),
+		pre.hljs code>div {
+			padding: 16px;
+			border-radius: 3px;
+			overflow: auto;
+		}
+
+		pre code {
+			color: var(--vscode-editor-background);
+			/*foreground*/
+			tab-size: 4;
+		}
+
+		/** Theming */
+
+		.vscode-light pre {
+			background-color: rgba(220, 220, 220, 0.4);
+		}
+
+		.vscode-dark pre {
+			background-color: rgba(10, 10, 10, 0.4);
+		}
+
+		.vscode-high-contrast pre {
+			background-color: rgb(0, 0, 0);
+		}
+
+		.vscode-high-contrast h1 {
+			border-color: rgb(0, 0, 0);
+		}
+
+		.vscode-light table>thead>tr>th {
+			border-color: rgba(0, 0, 0, 0.69);
+		}
+
+		.vscode-dark table>thead>tr>th {
+			border-color: rgba(255, 255, 255, 0.69);
+		}
+
+		.vscode-light h1,
+		.vscode-light hr,
+		.vscode-light table>tbody>tr+tr>td {
+			border-color: rgba(0, 0, 0, 0.18);
+		}
+
+		.vscode-dark h1,
+		.vscode-dark hr,
+		.vscode-dark table>tbody>tr+tr>td {
+			border-color: rgba(255, 255, 255, 0.18);
+		}
+	</style>
+
+	<style>
+		/* Tomorrow Comment */
+		.hljs-comment,
+		.hljs-quote {
+			color: #8e908c;
+		}
+
+		/* Tomorrow Red */
+		.hljs-variable,
+		.hljs-template-variable,
+		.hljs-tag,
+		.hljs-name,
+		.hljs-selector-id,
+		.hljs-selector-class,
+		.hljs-regexp,
+		.hljs-deletion {
+			color: #c82829;
+		}
+
+		/* Tomorrow Orange */
+		.hljs-number,
+		.hljs-built_in,
+		.hljs-builtin-name,
+		.hljs-literal,
+		.hljs-type,
+		.hljs-params,
+		.hljs-meta,
+		.hljs-link {
+			color: #f5871f;
+		}
+
+		/* Tomorrow Yellow */
+		.hljs-attribute {
+			color: #eab700;
+		}
+
+		/* Tomorrow Green */
+		.hljs-string,
+		.hljs-symbol,
+		.hljs-bullet,
+		.hljs-addition {
+			color: #718c00;
+		}
+
+		/* Tomorrow Blue */
+		.hljs-title,
+		.hljs-section {
+			color: #4271ae;
+		}
+
+		/* Tomorrow Purple */
+		.hljs-keyword,
+		.hljs-selector-tag {
+			color: #8959a8;
+		}
+
+		.hljs {
+			display: block;
+			overflow-x: auto;
+			color: #4d4d4c;
+			padding: 0.5em;
+		}
+
+		.hljs-emphasis {
+			font-style: italic;
+		}
+
+		.hljs-strong {
+			font-weight: bold;
+		}
+	</style>
+
+	<style>
+		/*
+ * Markdown PDF CSS
+ */
+
+		body {
+			font-family: "Hiragino Mincho Pro", -apple-system, BlinkMacSystemFont, "Segoe WPC", "Segoe UI", "Ubuntu", "Droid Sans", sans-serif, "Meiryo";
+			padding: 0 12px;
+		}
+
+		pre {
+			background-color: #f8f8f8;
+			border: 1px solid #cccccc;
+			border-radius: 3px;
+			overflow-x: auto;
+			white-space: pre-wrap;
+			overflow-wrap: break-word;
+		}
+
+		pre:not(.hljs) {
+			padding: 23px;
+			line-height: 19px;
+		}
+
+		blockquote {
+			background: rgba(127, 127, 127, 0.1);
+			border-color: rgba(0, 122, 204, 0.5);
+		}
+
+		.emoji {
+			height: 1.4em;
+		}
+
+		code {
+			font-size: 14px;
+			line-height: 19px;
+			border-radius: 5%;
+			color: #fff;
+		}
+
+		/* for inline code */
+		:not(pre):not(.hljs)>code {
+			color: #000;
+			padding: 1px 3px;
+			background-color: #f9f9f9;
+			background-image: -moz-linear-gradient(center top, #eee, #f9f9f9, #eee);
+			border: 1px solid #aaa;
+			border-radius: 2px;
+			box-shadow: 1px 2px 2px #ddd;
+			/*  font-family: inherit;*/
+			font-family: sans-serif;
+			font-size: 0.85em;
+		}
+
+		.page {
+			page-break-after: always;
+		}
+
+		.small-letter {
+			text-align: right;
+			color: #444444;
+			font-size: 85%;
+		}
+
+		.remark {
+			color: #444444;
+			font-size: 85%;
+		}
+	</style>
+
+	<script src="https://unpkg.com/mermaid/dist/mermaid.min.js"></script>
+</head>
+
+<body>
+	<script>
+		mermaid.initialize({
+			startOnLoad: true,
+			theme: document.body.classList.contains('vscode-dark') || document.body.classList.contains('vscode-high-contrast')
+				? 'dark'
+				: 'default'
+		});
+	</script>
+	<h1>コマンドラインを使い、PDFをテキストにする</h1>
+	<p class="small-letter">朝日新聞国際報道部・西尾 能人<br>
+		yoshito.nishio+JNPC@gmail.com</p>
+	<h2>0. はじめに</h2>
+	<p>ふだんはマウスを使って直感的に操作しているパソコン。でも、SF映画で、「黒い画面」に命令を打ち込んで操作するシーンを見たことがあるはず。近未来的とか、プロっぽい、とかいったイメージが託されている……のかも。<br>
+		昔ならともかく、実は今でもこの「黒い画面」を使う人がいる。どんなメリットがあるのか、少しだけ体験する。その例として、PDFからテキストを抽出してみる。<br>
+		下記の事前準備が難しかった方は、きょうは見るだけにして、「こういうものがある」ということだけ記憶に留めておく。大量のファイルに同じ処理をしたい、というニーズに直面したときに思い出そう。技術に詳しい人に声を掛けて、手伝ってもらえばよい。
+	</p>
+	<p class="remark">※「黒い画面」と言っても、設定次第では、白い背景だったり青い背景だったりする。</p>
+	<div>
+		<h2>1. このコマの目標</h2>
+		<ul>
+			<li>LinuxやMacのコマンドラインを知る</li>
+			<li>コマンド操作で、大量のPDFをテキストに変換する</li>
+		</ul>
+	</div>
+	<div>
+		<h2>2. このコマでやること</h2>
+		<ul>
+			<li>一つのことをやる「コマンド」を組み合わせることで、複雑な処理をする</li>
+			<li>大量のファイルに同じ処理を適用する</li>
+			<li>文字情報を持っているPDFからのテキスト抽出。<a
+					href="https://poppler.freedesktop.org/">Poppler</a>というツール群に含まれている「pdftotext」を使う
+			</li>
+		</ul>
+	</div>
+	<div>
+		<h2>3. 可能なら事前準備を</h2>
+		<p>ただし、<strong>決して無理しない</strong>こと!<br>
+			自信がない場合は、詳しい方に手伝ってもらうか、インストールしないままで見学を。</p>
+	</div>︎
+	<div>
+		<h4>▶Windowsをお使いの方のみ</h4>
+		<h3>3.1. Windows PCへのWSL2とUbuntuのインストール</h3>
+		<p>UbuntuというのはLinuxの一種。以下の手順で、デフォルトでインストールされる。</p>
+	</div>
+	<ol>
+		<li>
+			<code>Windows</code>キー + <code>X</code> キーを押し、メニューから「Windows
+			PowerShell(管理者)」を選ぶ。または、管理者権限ありで、PowerShellかcmd.exeを実行する。
+		</li>
+		<li>
+			開いた窓に、以下のコマンドを打ち込み、改行で実行する。
+			<div>
+				<pre><code> wsl --install
+</code></pre>
+			</div>
+			<p>あとは、画面の指示に従う。<br>
+				<a href="https://docs.microsoft.com/ja-jp/windows/wsl/install">参考：Microsoftのサイトの手順案内</a>
+			</p>
+		</li>
+		<li>
+			ペンギンマークのアイコンで、Linuxの端末が開く。初回のみ、ユーザー設定が必要。<br>
+			<a
+				href="https://docs.microsoft.com/ja-jp/windows/wsl/setup/environment#set-up-your-linux-username-and-password">参考：Microsoftのサイトの手順案内</a>
+
+		</li>
+		<li>
+			もし日本語環境になっていないようなら、そのときのみ、以下を実行<br>
+			<span class="remark">※今でもこれが必要か不明。どなたか教えて下さい。</span>
+
+			<div>
+				<pre><code> sudo apt install language-pack-ja
+ sudo update-locale LANG=ja_JP.UTF-8
+</code></pre>
+			</div>
+		</li>
+	</ol>
+	<div>
+		<h4>▶︎Windowsをお使いの方のみ</h4>
+		<h3>3.2. Windows PCへの「pdftotext」のインストール</h3>
+		<ol>
+			<li>
+				Linuxのターミナルで、以下のコマンドを実行。
+				<div>
+					<pre><code> sudo apt install poppler-utils
+</code></pre>
+				</div>
+			</li>
+		</ol>
+	</div>
+	<div>
+		<h4>▶︎Macをお使いの方のみ</h4>
+		<h3>3.3. Macへの「pdftotext」のインストール</h3>
+		<ol>
+			<li>
+				<p>Macのターミナルで、以下のコマンドを実行（Homebrewを使っている場合）。「tree」コマンドが不要なら、１行目だけでよい。</p>
+				<div>
+					<pre><code> brew install poppler
+ brew install tree
+</code></pre>
+				</div>
+			</li>
+		</ol>
+	</div>
+	<div>
+		<h2>4. このコマでは扱わないこと</h2>
+		<ul>
+			<li>文字情報を持たない「画像」状態のPDFの処理</li>
+		</ul>
+	</div>
+	<p>こちらは、スポーツ報知・田中さんら、本日、ほかの講師からご紹介があります。</p>
+	<ul>
+		<li>
+			文字情報を持っていて、かつ表形式の場合は「<a href="https://tabula.technology/">tabula</a>」がお勧め。ブラウザを使うが、スタンドアローンで動作している
+		</li>
+		<li>
+			Windows PCにLinux環境を構築する方法
+		</li>
+		<li>
+			pdftotext（Poppler）のインストールがうまく行かない場合の対処
+		</li>
+	</ul>
+	<p>いずれも、社によってセキュリティ周りの設定やOSのバージョンが異なり、いっせいにご案内するのは難しいため。<br>
+		「コマンドラインを使えばできるかも」ということが頭の片隅に残れば、必要になったときに、社内の詳しい方に相談できる。とりあえずは、それで十分。</p>
+	<ul>
+		<li>
+			GUI画面で、ファイル拡張子を表示させる方法（ご自身で調べてみて）
+		</li>
+	</ul>
+	<div>
+		<h2>5. フォルダの準備</h2>
+		<p>練習用のファイル一式を、GitHubに置いてある。<a
+				href="https://github.com/nishioWU/JNPC2205">https://github.com/nishioWU/JNPC2205</a>からダウンロードを。<br>
+			右上の緑の「code」から「Download ZIP」を選ぶ。ダウンロード後は必ず解凍し、デスクトップなど適当な場所に「JNPC2205-main」というファイルごと移しておく。<br>
+			このコマでは、このフォルダの中だけで作業する。</p>
+	</div>
+	<div>
+		<h2>6. コマンドラインを試す</h2>
+		<h3>6.1. Linux 端末の起動</h3>
+		<p>Windows
+			PCでは、デスクトップに準備した「JNPC2205-main」のフォルダを、<code>Shift</code>キーを押しながら右クリックする。すると、普段の右クリックでは出てこない「Linux端末をここに開く」という項目が見えるので、それを選ぶ（ここで開く、に直っているかも）。「bash」というものが立ち上がる。<br>
+			Mac の場合は、フォルダを２本指タップし、「サービス」から「フォルダに新規ターミナル」を選ぶ。または、「ターミナル」を起動してから、その画面に「cd
+			（半角スペース）」と打ち、きょうの作業場所となる「JNPC2205-main」のフォルダを黒い画面にドラッグしてから、「<code>return</code>」（または<code>enter</code>）キーを打つ。最近のMacなら
+			「zsh」というものが立ち上がる。古いOSからアップデートしている場合は、bashのこともある。どちらであるかは、ターミナル上部に表示されているはず。<br>
+			bash と zsh では挙動が違う部分があるが、本日扱う範囲では、それほど大きな差はない。</p>
+	</div>
+	<div>
+		<h3>6.2. 使い方の基本</h3>
+		<p>黒い画面に文字を打ち込み、最後に<code>Enter</code>キーを押すと、コマンドが実行される。きちんと実行された場合には、特段のメッセージは表示されない。また、危険な操作の場合も、確認・念押しはされずに、実行されてしまうので、要注意。Undoで元に戻すこともできない。
+		</p>
+	</div>
+	<p>
+		コマンドの履歴は<code>↑</code>キーでたどれるので（行き過ぎて戻るときは<code>↓</code>）、少し打ち替えて実行する場合に便利。打ち替える必要がなく、同じコマンドをもう一度実行する場合は<code>!</code><code>!</code>。履歴の中から検索するなら「<code>Ctrl</code>
+		+ <code>R</code>」。文字を打ち込むにつれて絞り込まれる「インクリメンタルサーチ」が使える。<br>
+		ファイル名やコマンドは、ほかと区別のつく部分まで入力して<code>Tab</code>キーを押せば、自動補完される。区別がつかない場合には、音が鳴るので、もう少し先まで打ち足せばよい。または<code>Tab</code>を２度押すと、候補の一覧が表示される。zshなら、<code>Tab</code>を押すたびに、次の候補が入力される。<br>
+		入力を中断したいときは「<code>Ctrl</code> + <code>C</code>」。実行中のコマンドをとめたいときも、同じく「<code>Ctrl</code> +
+		<code>C</code>」。画面をいったんクリアしたいときは、「<code>Ctrl</code> + <code>L</code>」。フリーズしたら、「<code>Ctrl</code> +
+		<code>D</code>」か、マウス操作で黒い窓を閉じて、やり直し。
+	</p>
+	<p>
+		なお、Linuxの世界では、Windowsと違って大文字と小文字は区別され、別物として扱われることに留意を。ファイルが見つからない旨のエラーが出るときも、これが原因のことがある。文字コードも、Windows標準のSHIFT-JISではなくUTF-8。なので、メモ帳などのアプリで開いたとき文字化けしていたら、コードを選び直して再度開いてみよう。
+	</p>
+	<div>
+		<h3>6.3. コマンドとオプション</h3>
+		<p>まず、今日使うフォルダの構成を見てみる。「tree」コマンドを使う。黒い画面に</p>
+	</div>
+	<div>
+		<pre><code>tree
+</code></pre>
+	</div>
+	<p>と入力して、<code>Enter</code>を押すと実行される。見慣れたGUIではないが、ファイルとフォルダが区別して表示されているのが分かるだろうか。<br>
+		あるフォルダ内のファイル一覧を見るには、「ls」コマンドを使う。やはり、黒い画面に</p>
+	<div>
+		<pre><code>ls
+</code></pre>
+	</div>
+	<p>と入力し、<code>Enter</code>を押すと実行される。<br>
+		今いる場所から別のフォルダに移動するときは、</p>
+	<div>
+		<pre><code>cd フォルダ名
+</code></pre>
+	</div>
+	<p>逆に元のフォルダに戻るときには、</p>
+	<div>
+		<pre><code>cd -
+</code></pre>
+	</div>
+	<p>と入力する。１階層上に行くときには、</p>
+	<div>
+		<pre><code>cd ..
+</code></pre>
+	</div>
+	<p>とする。よく使う。「.」１個は今いるフォルダという意味で、２個だと１階層上を指す。<br>
+		動作を少し変えたいときには、ハイフンでオプションを足す。<br>
+		例えば、ls コマンドでファイル名が縦に１つずつ表示されるようにしたければ、半角数字の「1」を添えて</p>
+	<div>
+		<pre><code>ls -1
+</code></pre>
+	</div>
+	<p>とする。<br>
+		同じ意味のオプションでも、長短２通りの指示の出し方があることが多い。短いオプションのときはハイフン１つ、長いオプションのときはハイフン２つが基本だが、長いオプションでもハイフン１つのときも稀にある。<br>
+		詳しい使い方を見たいときは、以下のように打つ。</p>
+	<div>
+		<pre><code>ls --help
+</code></pre>
+	</div>
+	<p>ファイルを１つずつ縦に並べるなら「-1」（数字のイチ）、詳しい情報を見たいときには「-l」（longのエル）、コンマで区切ってほしければ「-m」、種類別にしてほしいときは「-X」（大文字のエックス）、タイムスタンプ順なら「-t」、順番をひっくり返したいときは「-r
+		または --reverse」、とある。</p>
+	<div>
+		<pre><code>ls- 1
+ls -r
+</code></pre>
+	</div>
+	<p>などと入れてみよう。<br>
+		オプションは組み合わせることもできて、</p>
+	<div>
+		<pre><code>ls -1tr
+</code></pre>
+	</div>
+	<p>とすれば、「１つずつ」「タイムスタンプ」「逆順」なので、最新のファイルから順に表示することができる。</p>
+	<p>なお、</p>
+	<div>
+		<pre><code>man コマンド名</code>
+</pre>
+	</div>
+	<p>とすると、ヘルプよりも詳しいマニュアルが読める。Macのzshでは、デフォルトではヘルプがオンになっていないので、こちらの方法で。</p>
+	<div>
+		<h3>6.4. よく使うコマンド</h3>
+		<p>コマンドは無数にあるが、まず使うのは</p>
+	</div>
+	<ul>
+		<li>exit（黒い画面を閉じて、GUIの世界に戻る）</li>
+		<li>pwd（今どのフォルダにいるかを表示する）</li>
+		<li>ls（今いるフォルダのアイテムを表示する）</li>
+		<li>less（テキストファイルを１ページずつ表示する。ページ送りはスペースキー、次のファイルへの移動は<code>→</code>、終了は<code>Q</code>。ファイル内の検索もできる。複数のファイルを同時に開いた場合は、次のファイルへの移動は<code>:</code><code>n</code>、前のファイルに戻るときは<code>:</code><code>p</code>）
+		</li>
+		<li>cat（複数のファイルをつなげる。または、テキストファイルを表示する）</li>
+		<li>man（コマンドのマニュアルを表示する）</li>
+		<li>cp（ファイルをコピーする）</li>
+		<li>mv（コピーせずに移動する。または名前を変更する）</li>
+		<li>grep（テキストファイルを検索する。「正規表現」というものが使える）</li>
+		<li>sort（テキストをソートする）</li>
+		<li>uniq（ソート済みのものについて、ダブりを削除する）</li>
+		<li>wc（スペースで区切られた単語数や、行数を数える）</li>
+		<li>cd（別のフォルダに移動する）</li>
+		<li>mkdir（フォルダを新しく作る。エクスプローラーやファインダーで作っても同じこと）</li>
+		<li>find（条件にあうファイルを探す）</li>
+		<li>xargs（検索結果などを「引数」として次のコマンドに渡して実行する）</li>
+	</ul>
+	<p>あたり。その都度、使い方を調べて入力すればよい。私もよく使うオプション以外は頭に入っていない。</p>
+	<div>
+		<h3>6.5. パイプライン、リダイレクトとワイルドカード</h3>
+		<p>個々のコマンドは、単一のことをしっかりやる、という設計思想で作られている。回転寿司の一皿みたいなもので、いざ、まとまった作業をしようとすると、物足りない。そこで、必要に応じて複数のコマンドをつなげて使う。Aで処理した結果をBに渡して処理させ、Cというファイルに書き込む、というように。
+		</p>
+	</div>
+	<p>
+		あるコマンドを実行した結果を、別のコマンドに渡すときには、<code>|</code>（パイプ、パイプライン）を使う。<code>Shift</code>キーを押しながら<code>￥</code>マークのキーも押すと、出る。<br>
+		別のコマンドに渡すのではなく、ファイルに書き込むときには、<code>&gt;</code>か<code>&gt;</code><code>&gt;</code>（リダイレクト）を使う。1個なら上書き、2個だと追記になる。存在しないファイル名を指定すると、その名前で新たにファイルが作られる。<br>
+		それから、ファイル名の指定にはワイルドカードが使える。「*」は任意の文字列（文字なしも含む）、「?」は任意の１文字。このほかにもあるが、複雑なので、とりあえず２つだけ覚えておけばよい。</p>
+	<p><a
+			href="https://milestone-of-se.nesuke.com/sv-basic/linux-basic/wildcard-regular-expression/">参考：Linuxのワイルドカードと正規表現についてのサイト（ためになるが難しい）</a>
+	</p>
+	<p>コマンドを複数つなげて使い、ワイルドカードを活用することで、大量のファイルを一括処理することができる。それが、あえてマウスを使わずにコマンドを使う理由。たくさんの文書やデータと格闘するときに、役立つことが多い。</p>
+	<div>
+		<h3>6.6. grepで絞り混み、wcでカウント</h3>
+		<p>では、練習のため、cdコマンドで「TEXT」フォルダに移動を。
+			例えば、</p>
+	</div>
+	<div>
+		<pre><code>grep -n 東区 text*.txt &gt; result.txt
+</code></pre>
+	</div>
+	<p>こうすると、①今のフォルダの中にある「text」で始まる名前のテキストファイルすべてから②「東区」という文字列を含む行を探して③「result.txt」というファイルに書き込む－－という命令になる。result.txtというファイルがなければ作るが、もしあったら、上書きされてしまう。上書きでなく追記したいなら、「&gt;」を「&gt;&gt;」に変えてやる。<br>
+		grepの「-n」は、行番号を振るオプション。<br>
+		今は検索対象のファイルはたった４つしかないが、ワイルドカードで指定しているので、いくつに増えても同じ命令で事足りる。<br>
+		ところで、「text」と全部打たずに、「t」だけ打って<code>Tab</code>を押せば、自動補完されることをお忘れなく。そのとき音が鳴るのは、「text」で始まるファイルが複数あるのでこの先は特定できませんよ、と知らせてくれているわけ。
+	</p>
+	<p>
+		次に、「南区」を検索して、先ほどのファイルに追記してみよう。<code>↑</code>で今のコマンドを呼び出して編集してやる。「東区」を「南区」に、「&gt;」は「&gt;&gt;」に直す。</p>
+	<div>
+		<pre><code>grep -n 南区 text*.txt &gt;&gt; result.txt
+</code></pre>
+	</div>
+	<p>東と南がどちらが多いか数えることもできる。やはり、使ったコマンドを呼び出して編集して</p>
+	<div>
+		<pre><code>grep 東区 text*.txt | wc -l
+</code></pre>
+	</div>
+	<p>と、</p>
+	<div>
+		<pre><code>grep 南区 text.txt | wc -l
+</code></pre>
+	</div>
+	<p>を実行して比べてみよう（わざわざ「-n」を削らなくてもよい）。最後につけたオプションは、lineのエル。語数ではなく行数をカウントする、という指示。</p>
+	<p>エラーしない限り特段のメッセージが出ないのは、このようにパイプでつなげたり、ファイルに書き込んだりする際に、そのほうが便利だからだ。コマンドの実行結果とエラーメッセージは別物として管理されているため、エラーメッセージだけをログファイルに追記する、といったこともできる。
+	</p>
+	<div>
+		<h3>6.7. ファイルを移動する</h3>
+		<p>では、次に進むために、もう不要になったファイルを掃除する。trashというフォルダを作って</p>
+	</div>
+	<div>
+		<pre><code>mkdir trash
+</code></pre>
+	</div>
+	<p>そこに、tで始まるファイル全てを移動させてしまおう。</p>
+	<div>
+		<pre><code>mv t* trash
+</code></pre>
+	</div>
+	<p>result.txtももう不要なので、</p>
+	<div>
+		<pre><code>mv result.txt trash
+</code></pre>
+	</div>
+	<p>で移動する。ファイル名は、全部打たずに自動補完するのが楽。ファイル名で選り分ける必要がなく、テキストファイルをみな移動させると考えて、「mv *.txt
+		trash」でもよい。ファイルの種類も気にせず、このフォルダの全ファイルを移動させる、と割り切って「mv * trash」としてもよい。慎重かつ臨機応変に。</p>
+	<div>
+		<h2>7. pdftotext を試す</h2>
+		<h3>7.1. 自分の居場所を移動する</h3>
+		<p>今度は、「PDF」フォルダの中の「source」フォルダに移動を。いったん上の階層に行ってから、また降りていくようにする（横に移動することはできない）。１階層上に行くには、</p>
+	</div>
+	<div>
+		<pre><code>cd ..
+</code></pre>
+	</div>
+	<p>先ほどまでいたフォルダに戻る、という指示の仕方なら</p>
+	<div>
+		<pre><code>cd -
+</code></pre>
+	</div>
+	<p>で親フォルダに戻り、そこで</p>
+	<div>
+		<pre><code>cd PDF
+cd source
+</code></pre>
+	</div>
+	<p>で降りていく。打ち間違いを防ぐためにも、適宜<code>Tab</code>キーを押して自動補完しよう。一度に</p>
+	<div>
+		<pre><code>cd PDF/source
+</code></pre>
+	</div>
+	<p>でもよい。</p>
+	<div>
+		<h3>7.2. pdftotextの使い方</h3>
+		<p>いよいよ、pdftotextを使う。これは、Popplerというツール群の中のコマンドで、文字情報を持っているPDFから、テキストだけを抜き出してくれる。</p>
+	</div>
+	<div>
+		<pre><code>pdftotext ファイル名
+</code></pre>
+	</div>
+	<p>とすると、「abc.pdf」というファイル名のPDFを、拡張子だけ変えた「abc.txt」というテキストファイルに変換する。</p>
+	<p><a href="https://poppler.freedesktop.org/">参考：Poppler 公式サイト</a><br>
+		pdftotextの使い方は、以下が詳しい。<br>
+		<a href="https://atmarkit.itmedia.co.jp/ait/articles/1903/01/news029.html">参考：西村めぐみさんの記事</a><br>
+		西村さんの著書<a href="https://gihyo.jp/book/2021/978-4-297-12024-5">「Linux+コマンド入門
+			——シェルとコマンドライン、基本の力」</a>は、pdftotextに限らず、Linuxのコマンド全般でも役に立つ。ただし、オプションは主なものしか載っていないので、一度は「コマンド名
+		--help」で、使いたいコマンドのヘルプを見るべきだ。
+	</p>
+	<p>pdftotextコマンドの出力結果をテキストファイルに書き込むのではなく、画面に出すだけでよければ、</p>
+	<div>
+		<pre><code>pdftotext ファイル名 -
+</code></pre>
+	</div>
+	<p>のように、最後にハイフンを１つ付ける。ページ区切りが煩わしければ、「-nopgbrk」オプションを付ける。画面をさーっと流れて行ってしまう長い文書なら、</p>
+	<div>
+		<pre><code>pdftotext ファイル名 - | less 
+</code></pre>
+	</div>
+	<p>のように、パイプでlessに渡してやる。<br>
+		「PDF_番号.pdf」というファイルがいくつかあるので、ちゃんとテキストに変換されるか、見てみよう。くどいけれど、ファイル名入力はなるべく自動補完で。</p>
+	<div>
+		<h3>7.3. pdftotextの「文法」の注意点</h3>
+		<p>ところで、一つずつではなく、全部まとめて調べてみよう、と考えて</p>
+	</div>
+	<div>
+		<pre><code>pdftotext PDF_*.pdf -
+</code></pre>
+	</div>
+	<p>とか、さらに汎用的にPDFを全部捕まえると考えて</p>
+	<div>
+		<pre><code>pdftotext *.pdf -
+</code></pre>
+	</div>
+	<p>を試みた方はいないだろうか。私も同じことを考えた。<br>
+		しかし、コマンドのヘルプを見ると、pdftotextの文法は「pdftotext [options] &lt;PDF-file&gt; [&lt;text-file&gt;]」となっている（[
+		]内は省略可能）。ファイル名は１つまたは２つしかコマンドの後には置けず、１つ目が変換すべきPDF、２つ目がある場合はそれは抽出したテキストの書き込み先、という仕様だ。なので、「PDF_*」の条件に当てはまるファイルがたまたま１つなら正常動作するが、偶然２つあった場合は、２つ目は変換元ではなく書き込み先になってしまう（すでにファイルが存在している場合は上書きされる。catコマンドで中を見るか、拡張子を.txtに変えてWindowsのメモ帳で読むかして、確かめてみて）。ファイルが３つ以上見つかった場合はエラーして動かないので、ヘルプ画面が表示される、ということになる。
+	</p>
+	<p>
+		では、ファイルを１つずつ処理するしかないのか？
+		そもそも、１つずつテキストに変換するのでよいなら、Adobe Acrobat Readerでできる。文書を開いた後、「ファイル」→「その他の形式で保存」→「テキスト」を選べば済む。<br>
+		なのにわざわざコマンドラインを使う理由は、大量のファイルを一気に処理したいからだった。どうすればよいだろうか。</p>
+	<div>
+		<h4>7.4. おまけ：Ubuntuだけの楽なやり方</h4>
+		<p>Wondows
+			PCのWSL2でデフォルトでインストールされるUbuntuの場合、pdftotextをインストールすると、lessコマンドでいきなりPDF内のテキストが読めるようになる。気を利かせて、そういう仕様にしているようだ（時事通信・川上さん、ご教示多謝です）。lessは一度に複数のファイルを指定しても問題なく動くので、こうすればよい。
+		</p>
+	</div>
+	<div>
+		<pre><code>less 名前の目印*.pdf &gt; 出力ファイル名.txt
+</code></pre>
+	</div>
+	<p>この１行だけで、今いるフォルダの中にある、ある文字列で始まる名前のpdfファイルすべてを、テキストに変えて一本につなげ、出力先のテキストファイルに保存する、という指示になる。具体的には、</p>
+	<div>
+		<pre><code>less *.pdf &gt; joined_text.txt
+</code></pre>
+	</div>
+	<p>などとコマンドを打てばよい。Ubuntuを使っている方には朗報。</p>
+	<div>
+		<h2>8. 大量ファイルの一括処理</h2>
+		<h3>8.1. xargsでコマンドを組み合わせる</h3>
+		<p>そこで、xargsというコマンドを使うことにする。これは、直前のコマンドの結果を、次のコマンドの好きな位置に埋め込むのに使える。pdftotextに、一度に１つずつファイル名を渡すようコントロールするのに、うってつけだ。「-I」（大文字のアイ）というオプションに、<code>@</code>でも<code>{</code><code>}</code>でも何でもよいので目印の記号を付けて、こんなふうに使う。
+		</p>
+	</div>
+	<div>
+		<pre><code>前のコマンド | xargs -I{} 次のコマンド 入れたい場所に{}
+</code></pre>
+	</div>
+	<p>この例では、{}を書いた場所に、「前のコマンド」の実行結果が１つずつ入る。それが尽きるまで、「次のコマンド」を繰り返して実行する。だから、pdftotextに１つずつファイルを渡して、抽出したテキストを画面に表示するには、
+	</p>
+	<div>
+		<pre><code>ファイルを探すコマンド | xargs -I{} pdftotext {} -
+</code></pre>
+	</div>
+	<p>とすればよい。
+	</p>
+	<div>
+		<h3>8.2. findでファイルを探す</h3>
+		<p>PDF形式のファイルを探すには、findコマンドを使うことにする。lsとは違い、今いるフォルダだけでなく、それより下の階層をすべて探してくれる。</p>
+	</div>
+	<div>
+		<pre><code>find 探す場所 -name '*.pdf'
+</code></pre>
+	</div>
+	<p>のように使う。<br>
+		探す場所は、「.」とすれば、今いるフォルダを起点に、ここより下の階層も全部、という指示になる。<br>
+		-nameオプションはハイフン１つ。もし、ファイル名の大文字・小文字を区別したくなかったら、-inameオプションにする。その後は、「こんな名前のファイル」という検索条件を、シングルクオート（アポストロフィ。<code>Shift</code>+<code>7</code>で出る）で囲む。<br>
+		もし、並び順を辞書順ではなく、自然な数字順にしたければ、sortに渡してやる。lsの場合は小文字で「-v」とする（Macのzshのlsには-vオプションがない）のだが、sortは大文字で「-V」とするので、こうなる。
+	</p>
+	<div>
+		<pre><code>find . -name '*.pdf' | sort -V
+</code></pre>
+	</div>
+	<p>場所の「.」を省略しても、環境によっては動くようだ。<br>
+	zshでは、lsで「/**/」という書き方を使って深い階層まで探すことができるので
+	</p>
+	<div>
+		<pre><code>ls ./**/*.pdf | sort -V
+</code></pre>
+	</div>
+	<p>とすることもできる。</p>
+	<div>
+		<h3>8.3. １行プログラム完成</h3>
+		<p>これを、先ほど試したものにつなげて、</p>
+	</div>
+	<div>
+		<pre><code>find . -name '*.pdf' | sort -V | xargs -I{} pdftotext {} -
+</code></pre>
+	</div>
+	<p>こうなる。あと一息。画面に流すのではなく、全部をまとめて１つのテキストファイルに保存しておくなら、ファイルへのリダイレクトを足す。「joined_text.txt」というファイル名にするなら、以下のようになる。ついでに、長い文書の場合にPDFのページ区切りを取り除く、-nopgbrkというオプションも入れた。
+	</p>
+	<div>
+		<pre><code>find . -name '*.pdf' | sort -V | xargs -I{} pdftotext {} -nopgbrk - &gt; joined_text.txt
+</code></pre>
+	</div>
+	<p>段階的に試しながら、コマンドを履歴から編集して打ち足してきた。いきなりこれを見せられたら、呪文のようで逃げ出したくなるが、今なら何とか分かりそうな気がする。とりあえず、逃げ出しはしない……のではないだろうか。たった１行だけではあるけれど、簡単なプログラムがこれで完成だ！
+	</p>
+	<p>zshの場合は、lsを使って以下のようにしてもよい。</p>
+	<div>
+		<pre><code>ls ./**/*.pdf | sort -V | xargs -I{} pdftotext {} -nopgbrk - &gt; joined_text.txt
+</code></pre>
+	</div>
+	<p>出力場所を変更したいとき、例えば「今いるフォルダと同じ階層にある、outputというフォルダ」の下にしたいときには、</p>
+	<div>
+		<pre><code>find . -name '*.pdf' | sort -V | xargs -I{} pdftotext {} -nopgbrk - &gt; ../output/joined_text.txt
+</code></pre>
+	</div>
+	<p>とする。「..」で１階層上に上がり、その下にある「output」フォルダに降りて来る、という指定の仕方をしている。</p>
+	<p>zshの場合は</p>
+	<div>
+		<pre><code>ls ./**/*.pdf | sort -V | xargs -I{} pdftotext {} -nopgbrk - &gt; ../output/joined_text.txt
+</code></pre>
+	</div>
+	<p>でもよい。</p>
+	<p>PDFなら何でも、ではなく、テキスト抽出の対象とするPDFを絞り混みたいときは、findの後の'
+		'の中を変えればよい。'*_2022-??-??.pdf'（ファイル名の末尾に「_2022-XX-XX」というタイムスタンプが入っている）とか、'都道府県別データ*.pdf'（ファイル名が「都道府県別データ」で始まる）といった塩梅。
+	</p>
+	<div>
+		<h3>8.4. PDFごとに変換したいとき</h3>
+		<p>さて、全体をひとつのテキストファイルにまとめるのではなく、PDFごとに同名（拡張子は「.txt」に変わる）のテキストファイルに出力するのだったら、どうすればよいか。ファイルを検索するまでは一緒だが、ソートもリダイレクトも不要になる。
+		</p>
+	</div>
+	<p>
+		もとのPDFがあるのと同じフォルダに、それぞれテキストファイルを書き出すとすると、こうなる。</p>
+	<div>
+		<pre><code>find . -name '*.pdf' | xargs -I{} pdftotext -nopgbrk {}
+</code></pre>
+	</div>
+	<p>zshの場合は、</p>
+	<div>
+		<pre><code>ls ./**/*.pdf | xargs -I{} pdftotext -nopgbrk {}
+</code></pre>
+	</div>
+	<p>でもよい。</p>
+	<div>
+		<h3>8.5. 階層構造を保ったまま、変換済みテキストをあるフォルダにまとめたいとき</h3>
+		<p>PDFごとに同名のテキストファイルに変換した上で、階層構造を保ったまま、extracted_textというフォルダにまとめたい、ということもあるだろう。１行で書くのはたぶん無理なので、最小限のプログラムをサンプルとして示す。WSLでもMacでも動く。
+		</p>
+	</div>
+	<div>
+		<p>▶︎ファイル名「p2t.sh」
+		<pre><code>#!/bin/sh
+find . -name '*.pdf' | xargs -I{} dirname {} | sed s/^.// | xargs -I{} mkdir -p extracted_text{}
+find . -name '*.pdf' | xargs -I{} pdftotext -nopgbrk {}
+find . -name '*.pdf' | sed s/^.// | sed s/.pdf$/.txt/ | xargs -I{} mv .{} extracted_text{}</code></pre>
+		</p>
+	</div>
+	<p>このプログラムのファイルを、使いたいフォルダにコピーする。次に、そのフォルダに移動してから</p>
+	<div>
+		<pre><code>chmod +x p2t.sh</code></pre>
+	</div>
+	<p>と打って、ファイルを「実行可能」にしてやる。「x」は小文字のエックス。そして、</p>
+	<div>
+		<pre><code>./p2t.sh</code></pre>
+	</div>
+	<p>と打つと、プログラムが実行される。先頭についている「./」は、今いるフォルダにある、という意味。<br>
+		これで、今いる場所より下の階層にあるPDFがすべて、テキスト形式に変換されて、extracted_textフォルダの下に抽出される。もともとextracted_textという名前のフォルダがあったら、上書きしてしまうので、別名に変えるか、プログラムを手直しすること。
+	</p>
+	<p>
+		各行はそれぞれ、<br>
+		①このファイルは、プログラムとして実行するためのもの<br>
+		②拡張子が.pdfのファイルを探し、その置き場所までのツリー構造をextracted_text傘下に再現する<br>
+		③PDFと同じ置き場所で、テキストファイルに変換する<br>
+		④PDFと同名で拡張子が.txtになっているファイルのみ、extracted_text傘下の対応する位置に移動する<br>
+		ーーという指示になっている。この手順のうち、③の部分は、上でやったばかりの１行プログラムとまったく一緒であることに、気がついただろうか。
+	</p>
+	<p class="remark">
+		※プログラムを書いたり手直ししたりする場合には、「Word」など文字修飾機能があるワープロソフトではなく、「Visual Studio Code」などのテキストエディタを使う。文字コードはUTF-8で改行はLFのみ（CRなし）に。
+	</p>
+	<div>
+		<h4>8.6. おまけ：画像を抜き出す</h4>
+		<p>余談ながら、Popplerをインストールすると、pdftotextだけでなく、PDFから画像を抜き出すpdfimagesなどほかのコマンドも使えるようになる。「日本記者クラブ.pdf」というPDF中の画像を抜き出し、png形式でないものは変換した上で、「JNPC-xxx.png」というファイル名で保存したい場合は、
+		</p>
+	</div>
+	<div>
+		<pre><code>pdfimages -png 日本記者クラブ.pdf JNPC
+</code></pre>
+	</div>
+	<p>とする。</p>
+	<div>
+		<h2>9. おわりに</h2>
+		<h3>9.1. 枯れた技術ゆえの強み</h3>
+		<p>大量のファイルを処理する場合、最初に対象のファイルを全部まとめてしまってから一度だけ処理する手もあるだろうし、ファイルごとに処理してから最後にまとめるという手順も考えられる。取り組んでいる課題に合わせて、効率がよく、手戻りしない組み立てを考えればよい。
+		</p>
+	</div>
+	<p>
+		Linuxのコマンドは、先人の検証が十分になされている「枯れた技術」なので、技術に詳しい人に訊くか、ネット検索すれば、いろいろと方法はヒットするはずだ。</p>
+	<div>
+		<h3>9.2. 質問は財産、Slackで共有を</h3>
+		<p>もちろん、Slackのチャンネルに質問を投稿いただければ、私のレベルでは分からないことでも、一緒に学び、仕事に使っている仲間が助けてくれることと思う（なので、メールよりはSlackのほうが効率よいはず）。「ここが分からない」と思ったところ、「こうしたいのに」と感じたところは、多くの方に共通するはずで、質問と解決法はみんなの財産になる。遠慮は無用！
+		</p>
+		<p>お疲れさまでした。</p>
+	</div>
+</body>
+
+</html>
