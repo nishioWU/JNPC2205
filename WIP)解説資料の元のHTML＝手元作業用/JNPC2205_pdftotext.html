@@ -749,7 +749,7 @@ cd source
 		pdftotextの使い方は、以下が詳しい。<br>
 		<a href="https://atmarkit.itmedia.co.jp/ait/articles/1903/01/news029.html">参考：西村めぐみさんの記事</a><br>
 		西村さんの著書<a href="https://gihyo.jp/book/2021/978-4-297-12024-5">「Linux+コマンド入門
-			——シェルとコマンドライン、基本の力」</a>は、pdftotextに限らず、Linuxのコマンド全般でも役に立つ。ただし、オプションは主なものしか載っていないので、一度は「コマンド名
+			——シェルとコマンドライン、基本の力」</a>は、Linuxのコマンド全般について役に立つ。pdftotextには触れていない。なお、オプションは主なものしか載っていないので、一度は「コマンド名
 		--help」で、使いたいコマンドのヘルプを見るべきだ。
 	</p>
 	<p>pdftotextコマンドの出力結果をテキストファイルに書き込むのではなく、画面に出すだけでよければ、</p>
@@ -855,25 +855,25 @@ cd source
 	<p>こうなる。あと一息。画面に流すのではなく、全部をまとめて１つのテキストファイルに保存しておくなら、ファイルへのリダイレクトを足す。「joined_text.txt」というファイル名にするなら、以下のようになる。ついでに、長い文書の場合にPDFのページ区切りを取り除く、-nopgbrkというオプションも入れた。
 	</p>
 	<div>
-		<pre><code>find . -name '*.pdf' | sort -V | xargs -I{} pdftotext {} -nopgbrk - &gt; joined_text.txt
+		<pre><code>find . -name '*.pdf' | sort -V | xargs -I{} pdftotext -nopgbrk {} - &gt; joined_text.txt
 </code></pre>
 	</div>
 	<p>段階的に試しながら、コマンドを履歴から編集して打ち足してきた。いきなりこれを見せられたら、呪文のようで逃げ出したくなるが、今なら何とか分かりそうな気がする。とりあえず、逃げ出しはしない……のではないだろうか。たった１行だけではあるけれど、簡単なプログラムがこれで完成だ！
 	</p>
 	<p>zshの場合は、lsを使って以下のようにしてもよい。</p>
 	<div>
-		<pre><code>ls ./**/*.pdf | sort -V | xargs -I{} pdftotext {} -nopgbrk - &gt; joined_text.txt
+		<pre><code>ls ./**/*.pdf | sort -V | xargs -I{} pdftotext -nopgbrk {} - &gt; joined_text.txt
 </code></pre>
 	</div>
 	<p>出力場所を変更したいとき、例えば「今いるフォルダと同じ階層にある、outputというフォルダ」の下にしたいときには、</p>
 	<div>
-		<pre><code>find . -name '*.pdf' | sort -V | xargs -I{} pdftotext {} -nopgbrk - &gt; ../output/joined_text.txt
+		<pre><code>find . -name '*.pdf' | sort -V | xargs -I{} pdftotext -nopgbrk {} - &gt; ../output/joined_text.txt
 </code></pre>
 	</div>
 	<p>とする。「..」で１階層上に上がり、その下にある「output」フォルダに降りて来る、という指定の仕方をしている。</p>
 	<p>zshの場合は</p>
 	<div>
-		<pre><code>ls ./**/*.pdf | sort -V | xargs -I{} pdftotext {} -nopgbrk - &gt; ../output/joined_text.txt
+		<pre><code>ls ./**/*.pdf | sort -V | xargs -I{} pdftotext -nopgbrk {} - &gt; ../output/joined_text.txt
 </code></pre>
 	</div>
 	<p>でもよい。</p>
